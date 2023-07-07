@@ -1,14 +1,10 @@
-﻿using Microsoft.AspNetCore.Hosting.Server;
+﻿
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using System.Diagnostics;
-using System.Net.Http;
-using System.Text.Json.Nodes;
-using System.Text.Json;
 using MongoDB.Driver;
 using MongoDB.Bson;
-using static System.Net.Mime.MediaTypeNames;
+using System.Net.Http.Headers;
+using Microsoft.Extensions.Configuration;
+
 
 namespace netcore.Controllers
 {
@@ -24,6 +20,44 @@ namespace netcore.Controllers
             _logger = logger;
             configuration = _configuration;
         }
+
+        [HttpGet]
+        [Route("Test")]
+        public async Task<IActionResult> Test()
+        {
+            var appid = configuration.GetValue<string>("appid");
+            var secret = configuration.GetValue<string>("secret");
+            string url = $"https://api.weixin.qq.com/cgi-bin/stable_token";
+
+            var weChatToken = new { appid = appid, secret = secret, grant_type = "client_credential" };
+
+            string result = string.Empty;
+
+            using (HttpContent httpContent = new StringContent(JsonHelper.ObjToJson(weChatToken)))
+            {
+                httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                using (var httpClient = new HttpClient())
+                {
+                    httpClient.Timeout = new TimeSpan(0, 0, 60);
+                    result = await httpClient.PostAsync(url, httpContent).Result.Content.ReadAsStringAsync();
+                    AccessTokenDto accessTokenDto = JsonHelper.JsonToObj<AccessTokenDto>(result);
+
+                    var ticket = "1234567890";
+                    var jsonBind = JsonHelper.ObjToJson(new { path = $"pages/index/index?ticket={ticket}" , env_version = "develop" , width =128});
+                    using (HttpContent httpContentBind = new StringContent(jsonBind))
+                    {
+                        var urlBind = $"https://api.weixin.qq.com/wxa/getwxacode?access_token={accessTokenDto.access_token}";
+                        var bindstream = await httpClient.PostAsync(urlBind, httpContentBind).Result.Content.ReadAsStreamAsync();
+                        return File(bindstream, "image/jpeg");
+                    }
+                }
+
+
+            } 
+        }
+
+
+
         [HttpGet]
         [Route("CodeLogin")]
         public async Task<MessageModel<WeChatModel>> CodeLogin(string code)
@@ -42,7 +76,6 @@ namespace netcore.Controllers
             {
                 return MessageModel<WeChatModel>.Fail(string.Empty, data);
             }
-            
         }
 
 
@@ -54,6 +87,10 @@ namespace netcore.Controllers
             var Host = configuration.GetValue<string>("Host");
             var Port = configuration.GetValue<string>("Port");
             var LoginName = configuration.GetValue<string>("LoginName");
+             
+            string[] sayings = configuration.GetSection("sayings").Get<string[]>();
+            var title = configuration.GetValue<string>("title");
+
             var LoginPasswd = configuration.GetValue<string>("LoginPasswd");
 
             var grantConnectionMongoString = $"mongodb://{LoginName}:{LoginPasswd}@{Host}:{Port}";
@@ -78,6 +115,17 @@ namespace netcore.Controllers
             if (sugers.Count > 0)
             {
                 sugarDTO.curBlood = sugers[0];
+                sugarDTO.curBlood.title = title;
+                Random rd = new Random();
+ 
+                if(sayings!= null && sayings.Length>0)
+                {
+                    sugarDTO.curBlood.saying = sayings[rd.Next(0, sayings.Length)];
+                }
+                else
+                {
+                    sugarDTO.curBlood.saying = "每一次在控制血糖上的成功都是向自己付出的最好回报。";
+                }
 
                 {
                     //今天

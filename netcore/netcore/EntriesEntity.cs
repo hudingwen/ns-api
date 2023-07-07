@@ -12,6 +12,8 @@
         public double? sgv_str { get; set; }
         public string direction { get; set; }
         public string direction_str { get; set; }
-        public bool isMask { get; set; }    
+        public bool isMask { get; set; }
+        public string title { get; set; }
+        public string saying { get; set; }
     }
 }
