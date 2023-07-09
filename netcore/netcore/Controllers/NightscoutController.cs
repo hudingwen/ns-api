@@ -106,45 +106,42 @@ namespace netcore.Controllers
 
 
             var sugers = JsonHelper.JsonToObj<List<EntriesEntity>>(ls.ToJson());
-
+            if (sugers == null)  sugers = new List<EntriesEntity>();
             foreach (var item in sugers)
             {
                 FormatDate(item);
             }
 
-            if (sugers.Count > 0)
-            {
-                sugarDTO.curBlood = sugers[0];
-                sugarDTO.curBlood.title = title;
-                Random rd = new Random();
- 
-                if(sayings!= null && sayings.Length>0)
-                {
-                    sugarDTO.curBlood.saying = sayings[rd.Next(0, sayings.Length)];
-                }
-                else
-                {
-                    sugarDTO.curBlood.saying = "每一次在控制血糖上的成功都是向自己付出的最好回报。";
-                }
+            sugarDTO.curBlood = sugers.Count>0? sugers[0]:new EntriesEntity { date_str = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") };
+            sugarDTO.curBlood.title = title;
+            Random rd = new Random();
 
-                {
-                    //今天
-                    var flagDate = DateTime.Now.Date;
-                    sugarDTO.day0 = HandleSugarList(sugers, flagDate);
-                    
-                }
-                {
-                    //昨天
-                    var flagDate = DateTime.Now.Date.AddDays(-1);
-                    sugarDTO.day1 = HandleSugarList(sugers, flagDate);
-                    
-                }
-                {
-                    //前天
-                    var flagDate = DateTime.Now.Date.AddDays(-2);
-                    sugarDTO.day2 = HandleSugarList(sugers, flagDate);
-                    
-                }
+            if (sayings != null && sayings.Length > 0)
+            {
+                sugarDTO.curBlood.saying = sayings[rd.Next(0, sayings.Length)];
+            }
+            else
+            {
+                sugarDTO.curBlood.saying = "每一次在控制血糖上的成功都是向自己付出的最好回报。";
+            }
+
+            {
+                //今天
+                var flagDate = DateTime.Now.Date;
+                sugarDTO.day0 = HandleSugarList(sugers, flagDate);
+
+            }
+            {
+                //昨天
+                var flagDate = DateTime.Now.Date.AddDays(-1);
+                sugarDTO.day1 = HandleSugarList(sugers, flagDate);
+
+            }
+            {
+                //前天
+                var flagDate = DateTime.Now.Date.AddDays(-2);
+                sugarDTO.day2 = HandleSugarList(sugers, flagDate);
+
             }
             return MessageModel<SugarDTO>.Success("", sugarDTO);
             //var Host = configuration.GetValue<string>("Host");
